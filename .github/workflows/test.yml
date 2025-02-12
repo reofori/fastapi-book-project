@@ -1,0 +1,36 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest
+        run:|
+          source venv/bin/activate
+          pytest --maxfail=5 --disable-warnings
+
+      - name: Fail on Invalid Code
+        run: exit 1
+        if: failure()
