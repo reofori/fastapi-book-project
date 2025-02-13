@@ -18,11 +18,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ubuntu@ec2-54-83-47-218 >> ~/.ssh/known_hosts
+          ssh-keyscan -H ubuntu@54.83.47.218 >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         run: |
-          ssh ubuntu@ec2-54-83-47-218 << 'EOF'
+          ssh ubuntu@54.83.47.218 << 'EOF'
             export PATH=/bin:/usr/bin:$PATH  # Ensure all commands work
             
             # Ensure repo exists
