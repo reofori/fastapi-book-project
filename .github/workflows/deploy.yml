@@ -1,40 +1,47 @@
 name: CD Pipeline
-
 on:
   push:
     branches:
       - main
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ubuntu@54.83.47.218 >> ~/.ssh/known_hosts
-
+          ssh-keyscan -H 54.83.47.218 >> ~/.ssh/known_hosts
       - name: Deploy to EC2
         run: |
           ssh ubuntu@54.83.47.218 << 'EOF'
-            export PATH=/bin:/usr/bin:$PATH  # Ensure all commands work
-            
-            # Ensure repo exists
-            if [ ! -d "fastapi-book-project" ]; then
-              git clone https://github.com/reofori/fastapi-book-project.git
-            fi
+            export PATH=/bin:/usr/bin:$PATH
             
             cd fastapi-book-project
+            
+            # Kill all processes using port 8000
+            sudo lsof -ti:8000 | xargs -r sudo kill -9
+            
+            # Stop any running uvicorn instances
+            pkill -f uvicorn || true
+            
+            # Stop and remove all Docker containers
+            docker-compose down
+            docker rm -f $(docker ps -aq) || true
+            docker system prune -f
+            
+            # Pull latest changes
             git pull origin main
             
-            # Restart services
-            docker-compose down
-            docker-compose up -d --build
-            sudo systemctl restart nginx
+            # Clear Docker cache and rebuild
+            docker-compose build --no-cache
+            docker-compose up -d
+            
+            # Verify the port is now being used by our container
+            sleep 5
+            docker ps
+            sudo lsof -i :8000
           EOF
